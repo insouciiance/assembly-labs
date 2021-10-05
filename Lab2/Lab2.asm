@@ -1,7 +1,5 @@
 STSEG SEGMENT PARA STACK 'Stack'
-    
     DW 32 DUP(?)
-
 STSEG ENDS
 
 DSEG SEGMENT PARA 'Data'
@@ -32,7 +30,7 @@ CSEG SEGMENT PARA 'Code'
         MOV DS, AX
         
         INPUT:
-            MOV ISERROR, 0     
+            MOV ISERROR, 0
             CALL INPUTNUM
             CMP ISERROR, 0
             JG INPUT
@@ -84,6 +82,10 @@ CSEG SEGMENT PARA 'Code'
         PROCESS_DIGIT:
             MOV AH, 0
             MOV AL, [SI + BX]
+            CMP AL, 030H
+            JL RETURNERR
+            CMP AL, 039H
+            JG RETURNERR
             SUB AL, 030H
             MUL POSITION
             ADD NUM, AX

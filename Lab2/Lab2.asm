@@ -5,8 +5,8 @@ STSEG ENDS
 DSEG SEGMENT PARA 'Data'
     CR EQU 0DH
     LF EQU 0AH
-    MIN EQU -4681
-    MAX EQU 4681
+    MIN EQU -32768
+    MAX EQU 32767
     
     NUMPAR LABEL BYTE
     MAXLEN DB 20
@@ -16,6 +16,8 @@ DSEG SEGMENT PARA 'Data'
     PROMPT DB 'Number?', '$'
     ERRORMSG DB 'Entered number was invalid.', '$'
     NUM DW 0
+    NUMH DW 0
+    NUML DW 0
     POSITION DW 1
     NUMRADIX DW 10
     MULTIPLIER DW 7
@@ -91,15 +93,18 @@ CSEG SEGMENT PARA 'Code'
             SUB AL, 030H
             MUL POSITION
             ADD NUM, AX
-            CMP NUM, MAX
-            JG RETURNERR
+            JNO NEXT
             CMP NUM, MIN
-            JL RETURNERR
-            DEC BX
-            MOV AX, POSITION
-            MUL NUMRADIX
-            MOV POSITION, AX
-            LOOP PROCESS_DIGIT
+            JNE RETURNERR
+            MOV AX, [SI]
+            CMP AL, '-'
+            JNE RETURNERR
+            NEXT:
+                DEC BX
+                MOV AX, POSITION
+                MUL NUMRADIX
+                MOV POSITION, AX
+                LOOP PROCESS_DIGIT
         MOV AX, [SI]
         CMP AL, '-'
         JNE RETURN
@@ -113,21 +118,25 @@ CSEG SEGMENT PARA 'Code'
     CASTNUM ENDP
     
     CASTRESULT PROC NEAR
-        CMP NUM, 0
+        CMP NUMH, 0
         JGE M1
         MOV AL, '-'
         INT 29H
-        NEG NUM
+        NOT NUMH
+        NOT NUML
+        ADD NUML, 1
+        ADC NUMH, 0
         M1:
-            MOV AX, NUM
             MOV CX, 0
             MOV BX, 0AH
+            MOV DX, NUMH            
+            MOV AX, NUML
         M2:
-            MOV DX, 0
-            DIV BX
+            IDIV BX
             OR DL, 030H
             PUSH DX
             INC CX
+            MOV DX, 0
             TEST AX, AX
             JNZ M2
         M3:
@@ -140,7 +149,8 @@ CSEG SEGMENT PARA 'Code'
     MULNUM PROC NEAR
         MOV AX, NUM
         IMUL MULTIPLIER
-        MOV NUM, AX
+        MOV NUMH, DX
+        MOV NUML, AX
         RET
     MULNUM ENDP
     

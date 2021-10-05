@@ -91,7 +91,8 @@ CSEG SEGMENT PARA 'Code'
             CMP AL, 039H
             JG RETURNERR
             SUB AL, 030H
-            MUL POSITION
+            IMUL POSITION
+            JO RETURNERR
             ADD NUM, AX
             JNO NEXT
             CMP NUM, MIN
@@ -101,14 +102,18 @@ CSEG SEGMENT PARA 'Code'
             JNE RETURNERR
             NEXT:
                 DEC BX
+                CMP CX, 1
+                JE PRERETURN
                 MOV AX, POSITION
-                MUL NUMRADIX
+                IMUL NUMRADIX
+                JO RETURNERR
                 MOV POSITION, AX
                 LOOP PROCESS_DIGIT
-        MOV AX, [SI]
-        CMP AL, '-'
-        JNE RETURN
-        NEG NUM
+        PRERETURN:
+            MOV AX, [SI]
+            CMP AL, '-'
+            JNE RETURN
+            NEG NUM
         RETURN:
             RET
         RETURNERR:
@@ -129,7 +134,7 @@ CSEG SEGMENT PARA 'Code'
         M1:
             MOV CX, 0
             MOV BX, 0AH
-            MOV DX, NUMH            
+            MOV DX, NUMH
             MOV AX, NUML
         M2:
             IDIV BX

@@ -1,4 +1,4 @@
-Turbo Assembler	 Version 4.0	    05/10/21 17:56:45	    Page 1
+Turbo Assembler	 Version 4.0	    06/10/21 00:44:47	    Page 1
 lab2.asm
 
 
@@ -50,8 +50,8 @@ lab2.asm
      45	0019  E8 0030				 CALL CASTNUM
      46	001C  80 3E 0047r 00			 CMP ISERROR, 0
      47	0021  7F E7				 JG INPUT
-     48	0023  E8 00CA				 CALL MULNUM
-     49	0026  E8 0089				 CALL CASTRESULT
+     48	0023  E8 00D3				 CALL MULNUM
+     49	0026  E8 0092				 CALL CASTRESULT
      50	0029  CB				 RET
      51	002A				 BEGIN ENDP
      52
@@ -60,7 +60,7 @@ lab2.asm
      55	002C  BA 0017r			     LEA DX, PROMPT
      56	002F  CD 21			     INT 21H
      57
-Turbo Assembler	 Version 4.0	    05/10/21 17:56:45	    Page 2
+Turbo Assembler	 Version 4.0	    06/10/21 00:44:47	    Page 2
 lab2.asm
 
 
@@ -101,88 +101,98 @@ lab2.asm
      91	006B  B4 00				 MOV AH, 0
      92	006D  8A 00				 MOV AL, [SI + BX]
      93	006F  3C 30				 CMP AL, 030H
-     94	0071  7C 36				 JL RETURNERR
+     94	0071  7C 3F				 JL RETURNERR
      95	0073  3C 39				 CMP AL, 039H
-     96	0075  7F 32				 JG RETURNERR
+     96	0075  7F 3B				 JG RETURNERR
      97	0077  2C 30				 SUB AL, 030H
-     98	0079  F7 26 0041r			 MUL POSITION
-     99	007D  01 06 003Br			 ADD NUM, AX
-    100	0081  71 0E				 JNO NEXT
-    101	0083  81 3E 003Br 8000			 CMP NUM, MIN
-    102	0089  75 1E				 JNE RETURNERR
-    103	008B  8B 04				 MOV AX, [SI]
-    104	008D  3C 2D				 CMP AL, '-'
-    105	008F  75 18				 JNE RETURNERR
-    106	0091					 NEXT:
-    107	0091  4B				     DEC BX
-    108	0092  A1 0041r				     MOV AX, POSITION
-    109	0095  F7 26 0043r			     MUL NUMRADIX
-    110	0099  A3 0041r				     MOV POSITION, AX
-    111	009C  E2 CD				     LOOP PROCESS_DIGIT
-    112	009E  8B 04			     MOV AX, [SI]
-    113	00A0  3C 2D			     CMP AL, '-'
-    114	00A2  75 04			     JNE RETURN
-Turbo Assembler	 Version 4.0	    05/10/21 17:56:45	    Page 3
+     98	0079  F7 2E 0041r			 IMUL POSITION
+     99	007D  70 33				 JO RETURNERR
+    100	007F  01 06 003Br			 ADD NUM, AX
+    101	0083  71 0E				 JNO NEXT
+    102	0085  81 3E 003Br 8000			 CMP NUM, MIN
+    103	008B  75 25				 JNE RETURNERR
+    104	008D  8B 04				 MOV AX, [SI]
+    105	008F  3C 2D				 CMP AL, '-'
+    106	0091  75 1F				 JNE RETURNERR
+    107	0093					 NEXT:
+    108	0093  4B				     DEC BX
+    109	0094  83 F9 01				     CMP CX, 1
+    110	0097  74 0E				     JE	PRERETURN
+    111	0099  A1 0041r				     MOV AX, POSITION
+    112	009C  F7 2E 0043r			     IMUL NUMRADIX
+    113	00A0  70 10				     JO	RETURNERR
+    114	00A2  A3 0041r				     MOV POSITION, AX
+Turbo Assembler	 Version 4.0	    06/10/21 00:44:47	    Page 3
 lab2.asm
 
 
 
-    115	00A4  F7 1E 003Br		     NEG NUM
-    116	00A8				     RETURN:
-    117	00A8  C3				 RET
-    118	00A9				     RETURNERR:
-    119	00A9  E8 0053				 CALL PRINTERR
-    120	00AC  C6 06 0047r 01			 MOV ISERROR, 1
-    121	00B1  C3				 RET
-    122	00B2				 CASTNUM ENDP
-    123
-    124	00B2				 CASTRESULT PROC NEAR
-    125	00B2  83 3E 003Dr 00		     CMP NUMH, 0
-    126	00B7  7D 16			     JGE M1
-    127	00B9  B0 2D			     MOV AL, '-'
-    128	00BB  CD 29			     INT 29H
-    129	00BD  F7 16 003Dr		     NOT NUMH
-    130	00C1  F7 16 003Fr		     NOT NUML
-    131	00C5  83 06 003Fr 01		     ADD NUML, 1
-    132	00CA  83 16 003Dr 00		     ADC NUMH, 0
-    133	00CF				     M1:
-    134	00CF  B9 0000				 MOV CX, 0
-    135	00D2  BB 000A				 MOV BX, 0AH
-    136	00D5  8B 16 003Dr			 MOV DX, NUMH
-    137	00D9  A1 003Fr				 MOV AX, NUML
-    138	00DC				     M2:
-    139	00DC  F7 FB				 IDIV BX
-    140	00DE  80 CA 30				 OR DL,	030H
-    141	00E1  52				 PUSH DX
-    142	00E2  41				 INC CX
-    143	00E3  BA 0000				 MOV DX, 0
-    144	00E6  85 C0				 TEST AX, AX
-    145	00E8  75 F2				 JNZ M2
-    146	00EA				     M3:
-    147	00EA  58				 POP AX
-    148	00EB  CD 29				 INT 029H
-    149	00ED  E2 FB				 LOOP M3
-    150	00EF  C3			     RET
-    151	00F0				 CASTRESULT ENDP
-    152
-    153	00F0				 MULNUM	PROC NEAR
-    154	00F0  A1 003Br			     MOV AX, NUM
-    155	00F3  F7 2E 0045r		     IMUL MULTIPLIER
-    156	00F7  89 16 003Dr		     MOV NUMH, DX
-    157	00FB  A3 003Fr			     MOV NUML, AX
-    158	00FE  C3			     RET
-    159	00FF				 MULNUM	ENDP
-    160
-    161	00FF				 PRINTERR PROC NEAR
-    162	00FF  B4 09			     MOV AH, 09H
-    163	0101  BA 001Fr			     LEA DX, ERRORMSG
-    164	0104  CD 21			     INT 021H
-    165	0106  E8 FF36			     CALL NEWLINE
-    166	0109  C3			     RET
-    167	010A				 PRINTERR ENDP
-    168	010A			     CSEG ENDS
-    169				     END BEGIN
-Turbo Assembler	 Version 4.0	    05/10/21 17:56:45	    Page 4
+    115	00A5  E2 C4				     LOOP PROCESS_DIGIT
+    116	00A7				     PRERETURN:
+    117	00A7  8B 04				 MOV AX, [SI]
+    118	00A9  3C 2D				 CMP AL, '-'
+    119	00AB  75 04				 JNE RETURN
+    120	00AD  F7 1E 003Br			 NEG NUM
+    121	00B1				     RETURN:
+    122	00B1  C3				 RET
+    123	00B2				     RETURNERR:
+    124	00B2  E8 0053				 CALL PRINTERR
+    125	00B5  C6 06 0047r 01			 MOV ISERROR, 1
+    126	00BA  C3				 RET
+    127	00BB				 CASTNUM ENDP
+    128
+    129	00BB				 CASTRESULT PROC NEAR
+    130	00BB  83 3E 003Dr 00		     CMP NUMH, 0
+    131	00C0  7D 16			     JGE M1
+    132	00C2  B0 2D			     MOV AL, '-'
+    133	00C4  CD 29			     INT 29H
+    134	00C6  F7 16 003Dr		     NOT NUMH
+    135	00CA  F7 16 003Fr		     NOT NUML
+    136	00CE  83 06 003Fr 01		     ADD NUML, 1
+    137	00D3  83 16 003Dr 00		     ADC NUMH, 0
+    138	00D8				     M1:
+    139	00D8  B9 0000				 MOV CX, 0
+    140	00DB  BB 000A				 MOV BX, 0AH
+    141	00DE  8B 16 003Dr			 MOV DX, NUMH
+    142	00E2  A1 003Fr				 MOV AX, NUML
+    143	00E5				     M2:
+    144	00E5  F7 FB				 IDIV BX
+    145	00E7  80 CA 30				 OR DL,	030H
+    146	00EA  52				 PUSH DX
+    147	00EB  41				 INC CX
+    148	00EC  BA 0000				 MOV DX, 0
+    149	00EF  85 C0				 TEST AX, AX
+    150	00F1  75 F2				 JNZ M2
+    151	00F3				     M3:
+    152	00F3  58				 POP AX
+    153	00F4  CD 29				 INT 029H
+    154	00F6  E2 FB				 LOOP M3
+    155	00F8  C3			     RET
+    156	00F9				 CASTRESULT ENDP
+    157
+    158	00F9				 MULNUM	PROC NEAR
+    159	00F9  A1 003Br			     MOV AX, NUM
+    160	00FC  F7 2E 0045r		     IMUL MULTIPLIER
+    161	0100  89 16 003Dr		     MOV NUMH, DX
+    162	0104  A3 003Fr			     MOV NUML, AX
+    163	0107  C3			     RET
+    164	0108				 MULNUM	ENDP
+    165
+    166	0108				 PRINTERR PROC NEAR
+    167	0108  B4 09			     MOV AH, 09H
+    168	010A  BA 001Fr			     LEA DX, ERRORMSG
+    169	010D  CD 21			     INT 021H
+    170	010F  E8 FF2D			     CALL NEWLINE
+    171	0112  C3			     RET
+Turbo Assembler	 Version 4.0	    06/10/21 00:44:47	    Page 4
+lab2.asm
+
+
+
+    172	0113				 PRINTERR ENDP
+    173	0113			     CSEG ENDS
+    174				     END BEGIN
+Turbo Assembler	 Version 4.0	    06/10/21 00:44:47	    Page 5
 Symbol Table
 
 
@@ -190,9 +200,9 @@ Symbol Table
 
 Symbol Name			  Type	 Value
 
-??DATE				  Text	 "05/10/21"
+??DATE				  Text	 "06/10/21"
 ??FILENAME			  Text	 "lab2	  "
-??TIME				  Text	 "17:56:45"
+??TIME				  Text	 "00:44:47"
 ??VERSION			  Number 0400
 @CPU				  Text	 0101H
 @CURSEG				  Text	 CSEG
@@ -200,23 +210,23 @@ Symbol Name			  Type	 Value
 @WORDSIZE			  Text	 2
 BEGIN				  Far	 CSEG:0000
 CASTNUM				  Near	 CSEG:004C
-CASTRESULT			  Near	 CSEG:00B2
+CASTRESULT			  Near	 CSEG:00BB
 CR				  Number 000D
 ERRORMSG			  Byte	 DSEG:001F
 INPUT				  Near	 CSEG:000A
 INPUTNUM			  Near	 CSEG:002A
 ISERROR				  Byte	 DSEG:0047
 LF				  Number 000A
-M1				  Near	 CSEG:00CF
-M2				  Near	 CSEG:00DC
-M3				  Near	 CSEG:00EA
+M1				  Near	 CSEG:00D8
+M2				  Near	 CSEG:00E5
+M3				  Near	 CSEG:00F3
 MAX				  Number 7FFF
 MAXLEN				  Byte	 DSEG:0000
 MIN				  Number -8000
-MULNUM				  Near	 CSEG:00F0
+MULNUM				  Near	 CSEG:00F9
 MULTIPLIER			  Word	 DSEG:0045
 NEWLINE				  Near	 CSEG:003F
-NEXT				  Near	 CSEG:0091
+NEXT				  Near	 CSEG:0093
 NUM				  Word	 DSEG:003B
 NUMFLD				  Byte	 DSEG:0002
 NUMH				  Word	 DSEG:003D
@@ -225,15 +235,16 @@ NUMLEN				  Byte	 DSEG:0001
 NUMPAR				  Byte	 DSEG:0000
 NUMRADIX			  Word	 DSEG:0043
 POSITION			  Word	 DSEG:0041
-PRINTERR			  Near	 CSEG:00FF
+PRERETURN			  Near	 CSEG:00A7
+PRINTERR			  Near	 CSEG:0108
 PROCESS_DIGIT			  Near	 CSEG:006B
 PROMPT				  Byte	 DSEG:0017
-RETURN				  Near	 CSEG:00A8
-RETURNERR			  Near	 CSEG:00A9
+RETURN				  Near	 CSEG:00B1
+RETURNERR			  Near	 CSEG:00B2
 
 Groups & Segments		  Bit Size Align  Combine Class
 
-CSEG				  16  010A Para	  none	  CODE
+CSEG				  16  0113 Para	  none	  CODE
 DSEG				  16  0048 Para	  none	  DATA
 STSEG				  16  0040 Para	  Stack	  STACK
 

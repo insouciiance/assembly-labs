@@ -5,11 +5,5 @@
  00040H 00083H 00044H DSEG               DATA
  00090H 00183H 000F4H CSEG               CODE
 
-  Address         Publics by Name
-
-
-  Address         Publics by Value
-
-
 Program entry point at 0009:0000
 

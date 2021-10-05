@@ -5,6 +5,8 @@ STSEG ENDS
 DSEG SEGMENT PARA 'Data'
     CR EQU 0DH
     LF EQU 0AH
+    MIN EQU -4681
+    MAX EQU 4681
     
     NUMPAR LABEL BYTE
     MAXLEN DB 20
@@ -89,9 +91,9 @@ CSEG SEGMENT PARA 'Code'
             SUB AL, 030H
             MUL POSITION
             ADD NUM, AX
-            CMP NUM, 4681
+            CMP NUM, MAX
             JG RETURNERR
-            CMP NUM, -4681
+            CMP NUM, MIN
             JL RETURNERR
             DEC BX
             MOV AX, POSITION

@@ -1,0 +1,15 @@
+
+ Start  Stop   Length Name               Class
+
+ 00000H 0007FH 00080H STSEG              STACK
+ 00080H 000EDH 0006EH DSEG               DATA
+ 000F0H 00320H 00231H CSEG               CODE
+
+  Address         Publics by Name
+
+
+  Address         Publics by Value
+
+
+Program entry point at 000F:0000
+

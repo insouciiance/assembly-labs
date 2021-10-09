@@ -1,4 +1,4 @@
-Turbo Assembler	 Version 4.0	    11/09/21 00:21:01	    Page 1
+Turbo Assembler	 Version 4.0	    07/10/21 00:36:51	    Page 1
 lab1.asm
 
 
@@ -42,7 +42,7 @@ lab1.asm
      37	0037			     MAIN ENDP
      38	0037			     CSEG ENDS
      39				     END MAIN
-Turbo Assembler	 Version 4.0	    11/09/21 00:21:01	    Page 2
+Turbo Assembler	 Version 4.0	    07/10/21 00:36:51	    Page 2
 Symbol Table
 
 
@@ -50,9 +50,9 @@ Symbol Table
 
 Symbol Name			  Type	 Value
 
-??DATE				  Text	 "11/09/21"
+??DATE				  Text	 "07/10/21"
 ??FILENAME			  Text	 "lab1	  "
-??TIME				  Text	 "00:21:01"
+??TIME				  Text	 "00:36:51"
 ??VERSION			  Number 0400
 @CPU				  Text	 0101H
 @CURSEG				  Text	 CSEG

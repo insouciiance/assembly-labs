@@ -21,6 +21,7 @@ DSEG SEGMENT PARA 'Data'
     PROMPTX DB 'Enter x:', '$'
     PROMPTY DB 'Enter y:', '$'
     ERRORMSG DB 'Entered number was invalid.', '$'
+    
     NUMX DW ?
     NUMY DW ?
     NUMH DW ?
@@ -29,8 +30,11 @@ DSEG SEGMENT PARA 'Data'
     NUMRADIX DW 10
     
     FUNC1AUX DW 0
-    FUNC2DIVISOR DB 0
+    FUNC2DIVISOR DW 0
     FUNC3MULTIPLIER DW 2
+    
+    CAST_DIVISOR DW 0
+    DECIMAL_PRECISION DB 5
     
     ISERROR DB ?
 DSEG ENDS
@@ -56,17 +60,17 @@ CSEG SEGMENT PARA 'Code'
             CMP NUMX, -01H
             JG CHECKFUNC2
             CALL FUNC3
-            JMP RETURN
+            JMP RETURN_INT
             CHECKFUNC2:
                 CMP NUMX, 01H
                 JG CHECKFUNC1
                 CALL FUNC2
-                JMP RETURN
+                JMP RETURN_DECIMAL
                 CHECKFUNC1:
                     CMP NUMX, 03H
                     JG INPUT_Y
                     CALL FUNC1
-                    JMP RETURN
+                    JMP RETURN_DECIMAL
                     INPUT_Y:
                         MOV ISERROR, 0
                         CALL INPUTY
@@ -76,9 +80,12 @@ CSEG SEGMENT PARA 'Code'
                         CMP ISERROR, 0
                         JG INPUT_Y
                         CALL FUNC4
-                        JMP RETURN
-            RETURN:
+                        JMP RETURN_INT
+            RETURN_INT:
                 CALL CASTRESULT
+                RET
+            RETURN_DECIMAL:
+                CALL CASTDECIMAL
                 RET
     BEGIN ENDP
     
@@ -128,36 +135,36 @@ CSEG SEGMENT PARA 'Code'
             MOV AH, 0
             MOV AL, [SI + BX]
             CMP AL, 030H
-            JL RETURNERRCASTX
+            JL RETURNERR_CASTX
             CMP AL, 039H
-            JG RETURNERRCASTX
+            JG RETURNERR_CASTX
             SUB AL, 030H
             IMUL POSITION
-            JO RETURNERRCASTX
+            JO RETURNERR_CASTX
             ADD NUMX, AX
-            JNO NEXTCASTX
+            JNO NEXT_CASTX
             CMP NUMX, MIN
-            JNE RETURNERRCASTX
+            JNE RETURNERR_CASTX
             MOV AX, [SI]
             CMP AL, '-'
-            JNE RETURNERRCASTX
-            NEXTCASTX:
+            JNE RETURNERR_CASTX
+            NEXT_CASTX:
                 DEC BX
                 CMP CX, 1
-                JE PRERETURNCASTX
+                JE PRERETURN_CASTX
                 MOV AX, POSITION
                 IMUL NUMRADIX
-                JO RETURNERRCASTX
+                JO RETURNERR_CASTX
                 MOV POSITION, AX
                 LOOP PROCESS_DIGITX
-        PRERETURNCASTX:
+        PRERETURN_CASTX:
             MOV AX, [SI]
             CMP AL, '-'
-            JNE RETURNCASTX
+            JNE RETURN_CASTX
             NEG NUMX
-        RETURNCASTX:
+        RETURN_CASTX:
             RET
-        RETURNERRCASTX:
+        RETURNERR_CASTX:
             CALL PRINTERR
             MOV ISERROR, 1
             RET
@@ -179,67 +186,72 @@ CSEG SEGMENT PARA 'Code'
             MOV AH, 0
             MOV AL, [SI + BX]
             CMP AL, 030H
-            JL RETURNERRCASTY
+            JL RETURNERR_CASTY
             CMP AL, 039H
-            JG RETURNERRCASTY
+            JG RETURNERR_CASTY
             SUB AL, 030H
             IMUL POSITION
-            JO RETURNERRCASTY
+            JO RETURNERR_CASTY
             ADD NUMY, AX
-            JNO NEXTCASTY
+            JNO NEXT_CASTY
             CMP NUMY, MIN
-            JNE RETURNERRCASTY
+            JNE RETURNERR_CASTY
             MOV AX, [SI]
             CMP AL, '-'
-            JNE RETURNERRCASTY
-            NEXTCASTY:
+            JNE RETURNERR_CASTY
+            NEXT_CASTY:
                 DEC BX
                 CMP CX, 1
-                JE PRERETURNCASTY
+                JE PRERETURN_CASTY
                 MOV AX, POSITION
                 IMUL NUMRADIX
-                JO RETURNERRCASTY
+                JO RETURNERR_CASTY
                 MOV POSITION, AX
                 LOOP PROCESS_DIGITY
-        PRERETURNCASTY:
+        PRERETURN_CASTY:
             MOV AX, [SI]
             CMP AL, '-'
-            JNE RETURNCASTY
+            JNE RETURN_CASTY
             NEG NUMY
-        RETURNCASTY:
+        RETURN_CASTY:
             RET
-        RETURNERRCASTY:
+        RETURNERR_CASTY:
             CALL PRINTERR
             MOV ISERROR, 1
             RET
     CASTY ENDP
 
-    FUNC1 PROC NEAR
+    FUNC1 PROC NEAR ; result = 35 / X + X^3
         MOV AX, 35
         IDIV NUMX
+        MOV BX, NUMX
+        MOV CAST_DIVISOR, BX
+        MOV NUMH, DX        
         MOV FUNC1AUX, AX
         MOV AX, NUMX
         IMUL NUMX
         IMUL NUMX
         ADD AX, FUNC1AUX
         MOV NUML, AX
-        MOV NUMH, 0
         RET
     FUNC1 ENDP
     
-    FUNC2 PROC NEAR
+    FUNC2 PROC NEAR ; result = X / (X^2 + 1)
         MOV AX, NUMX
         IMUL NUMX
-        INC AL
-        MOV FUNC2DIVISOR, AL
+        INC AX
+        MOV FUNC2DIVISOR, AX
+        MOV BX, FUNC2DIVISOR
+        MOV CAST_DIVISOR, BX
         MOV AX, NUMX
+        MOV DX, 0
         IDIV FUNC2DIVISOR
-        MOV AH, 0
         MOV NUML, AX
-        MOV NUMH, 0
+        MOV NUMH, DX
+        RET
     FUNC2 ENDP
     
-    FUNC3 PROC NEAR
+    FUNC3 PROC NEAR ; result = 2X
         MOV AX, NUMX
         IMUL FUNC3MULTIPLIER
         MOV NUMH, DX
@@ -247,43 +259,101 @@ CSEG SEGMENT PARA 'Code'
         RET
     FUNC3 ENDP
     
-    FUNC4 PROC NEAR
+    FUNC4 PROC NEAR ; result = X + Y
         MOV AX, NUMX
-        ADD AX, NUMY
+        CMP NUMY, 0
+        JGE ADDY
+        NEG NUMY
+        SUB AX, NUMY
         MOV NUML, AX
         MOV NUMH, 0
-        ADC NUMH, 0
-        RET
+        JNS RETURNFUNC4
+        SBB NUMH, 0
+        JMP RETURNFUNC4
+        ADDY:
+            ADD AX, NUMY
+            MOV NUML, AX
+            MOV NUMH, 0
+            ADC NUMH, 0
+            RETURNFUNC4:
+            RET
     FUNC4 ENDP
     
     CASTRESULT PROC NEAR
         CMP NUMH, 0
-        JGE M1
+        JGE CAST_1
         MOV AL, '-'
         INT 29H
         NOT NUMH
         NOT NUML
         ADD NUML, 1
         ADC NUMH, 0
-        M1:
+        CAST_1:
             MOV CX, 0
             MOV BX, 0AH
             MOV DX, NUMH
             MOV AX, NUML
-        M2:
+        CAST_2:
             IDIV BX
             OR DL, 030H
             PUSH DX
             INC CX
             MOV DX, 0
             TEST AX, AX
-            JNZ M2
-        M3:
+            JNZ CAST_2
+        CAST_3:
             POP AX
             INT 029H
-            LOOP M3
+            LOOP CAST_3
         RET
     CASTRESULT ENDP
+    
+    CASTDECIMAL PROC NEAR 
+        CMP NUML, 0
+        JGE CAST_INT1
+        MOV AL, '-'
+        INT 29H
+        NEG NUML
+        CAST_INT1:
+            MOV CX, 0
+            MOV BX, 0AH
+            MOV AX, NUML
+            MOV DX, 0
+        CAST_INT2:
+            IDIV BX
+            OR DL, 030H
+            PUSH DX
+            INC CX
+            MOV DX, 0
+            TEST AX, AX
+            JNZ CAST_INT2
+        CAST_INT3:
+            POP AX
+            INT 029H
+            LOOP CAST_INT3
+            
+        CMP NUMH, 0
+        JE DECIMAL_RETURN
+            
+        MOV AX, 02EH ; dot(.)
+        INT 029H
+            
+        MOV AX, NUMH
+        CAST_DECIMAL1:
+            IMUL NUMRADIX
+            IDIV CAST_DIVISOR
+            OR AX, 030H
+            INT 029H
+            MOV AX, DX
+            DEC DECIMAL_PRECISION
+            CMP DECIMAL_PRECISION, 0
+            JLE DECIMAL_RETURN
+            CMP AX, 0
+            JE DECIMAL_RETURN
+            JMP CAST_DECIMAL1 
+        DECIMAL_RETURN: 
+            RET
+    CASTDECIMAL ENDP
     
     PRINTERR PROC NEAR
         MOV AH, 09H

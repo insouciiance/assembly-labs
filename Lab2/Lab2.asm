@@ -47,7 +47,7 @@ CSEG SEGMENT PARA 'Code'
     BEGIN ENDP
 
     INPUTNUM PROC NEAR
-        MOV AH, 09
+        MOV AH, 09H
         LEA DX, PROMPT
         INT 21H
             
@@ -63,17 +63,17 @@ CSEG SEGMENT PARA 'Code'
 
     NEWLINE PROC NEAR
         MOV DL, CR
-        MOV AH, 02h
+        MOV AH, 02H
         INT 21H
         MOV DL, LF
-        MOV AH, 02h
+        MOV AH, 02H
         INT 21H
         RET
     NEWLINE ENDP
     
     CASTNUM PROC NEAR
         MOV NUM, 0
-        MOV POSITION, 1
+        MOV POSITION, 01H
         MOV CH, 0    
         MOV CL, NUMLEN
         MOV BX, CX
@@ -118,7 +118,7 @@ CSEG SEGMENT PARA 'Code'
             RET
         RETURNERR:
             CALL PRINTERR
-            MOV ISERROR, 1
+            MOV ISERROR, 01H
             RET
     CASTNUM ENDP
     
@@ -129,7 +129,7 @@ CSEG SEGMENT PARA 'Code'
         INT 29H
         NOT NUMH
         NOT NUML
-        ADD NUML, 1
+        ADD NUML, 01H
         ADC NUMH, 0
         M1:
             MOV CX, 0

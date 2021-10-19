@@ -5,5 +5,11 @@
  00080H 000F1H 00072H DSEG               DATA
  00100H 003C2H 002C3H CSEG               CODE
 
+  Address         Publics by Name
+
+
+  Address         Publics by Value
+
+
 Program entry point at 0010:0000
 

@@ -90,7 +90,7 @@ CSEG SEGMENT PARA 'Code'
     BEGIN ENDP
     
     INPUTX PROC NEAR
-        MOV AH, 09
+        MOV AH, 09H
         LEA DX, PROMPTX
         INT 21H
             
@@ -105,7 +105,7 @@ CSEG SEGMENT PARA 'Code'
     INPUTX ENDP
     
     INPUTY PROC NEAR
-        MOV AH, 09
+        MOV AH, 09H
         LEA DX, PROMPTY
         INT 21H
             
@@ -121,7 +121,7 @@ CSEG SEGMENT PARA 'Code'
     
     CASTX PROC NEAR
         MOV NUMX, 0
-        MOV POSITION, 1
+        MOV POSITION, 01H
         MOV CH, 0    
         MOV CL, XLEN
         MOV BX, CX
@@ -150,7 +150,7 @@ CSEG SEGMENT PARA 'Code'
             JNE RETURNERR_CASTX
             NEXT_CASTX:
                 DEC BX
-                CMP CX, 1
+                CMP CX, 01H
                 JE PRERETURN_CASTX
                 MOV AX, POSITION
                 IMUL NUMRADIX
@@ -166,13 +166,13 @@ CSEG SEGMENT PARA 'Code'
             RET
         RETURNERR_CASTX:
             CALL PRINTERR
-            MOV ISERROR, 1
+            MOV ISERROR, 01H
             RET
     CASTX ENDP
     
     CASTY PROC NEAR
         MOV NUMY, 0
-        MOV POSITION, 1
+        MOV POSITION, 01H
         MOV CH, 0    
         MOV CL, YLEN
         MOV BX, CX
@@ -201,7 +201,7 @@ CSEG SEGMENT PARA 'Code'
             JNE RETURNERR_CASTY
             NEXT_CASTY:
                 DEC BX
-                CMP CX, 1
+                CMP CX, 01H
                 JE PRERETURN_CASTY
                 MOV AX, POSITION
                 IMUL NUMRADIX
@@ -217,7 +217,7 @@ CSEG SEGMENT PARA 'Code'
             RET
         RETURNERR_CASTY:
             CALL PRINTERR
-            MOV ISERROR, 1
+            MOV ISERROR, 01H
             RET
     CASTY ENDP
 
@@ -286,7 +286,7 @@ CSEG SEGMENT PARA 'Code'
         INT 29H
         NOT NUMH
         NOT NUML
-        ADD NUML, 1
+        ADD NUML, 01H
         ADC NUMH, 0
         CAST_1:
             MOV CX, 0
@@ -365,10 +365,10 @@ CSEG SEGMENT PARA 'Code'
     
     NEWLINE PROC NEAR
         MOV DL, CR
-        MOV AH, 02h
+        MOV AH, 02H
         INT 21H
         MOV DL, LF
-        MOV AH, 02h
+        MOV AH, 02H
         INT 21H
         RET
     NEWLINE ENDP

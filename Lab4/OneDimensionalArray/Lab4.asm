@@ -8,6 +8,13 @@ DSEG SEGMENT PARA 'Data'
     MIN EQU -32768
     MAX EQU 32767
     
+    PROMPT DB 'Enter array length (max. 10):', '$'
+    ERRORMSG DB 'Entered number was invalid.', '$'
+    MAXNUMMSG DB 'Max number: ', '$'
+    SUMMSG DB 'Elements sum: ', '$'
+    ENTERARRAYMSG DB 'Now enter array elements: ', '$'
+    PRINTARRAYMSG DB 'Sorted array: ', '$'
+    
     NUMPAR LABEL BYTE
     MAXLEN DB 20
     NUMLEN DB ?
@@ -18,23 +25,17 @@ DSEG SEGMENT PARA 'Data'
     ARRNUMLEN DB ?
     ARRNUMFLD DB 20 DUP(' '), '$'
     
+    NUM DW 0
+    
     ARRAY DW 10 DUP (?)
     ARRNUM DW 0
     
     ARRAY_OFFSET DW 0
     
     MAXNUM DW MIN
-    
-    PROMPT DB 'Enter array length (max. 10):', '$'
-    ERRORMSG DB 'Entered number was invalid.', '$'
-    MAXNUMMSG DB 'Max number: ', '$'
-    SUMMSG DB 'Elements sum: ', '$'
-    ENTERARRAYMSG DB 'Now enter array elements: ', '$'
-    PRINTARRAYMSG DB 'Sorted array: ', '$'
-    
-    NUM DW 0
     SUMH DW 0
     SUML DW 0
+    
     POSITION DW 1
     NUMRADIX DW 10
     MULTIPLIER DW 7
@@ -50,25 +51,40 @@ CSEG SEGMENT PARA 'Code'
         MOV AX, DSEG
         MOV DS, AX
         
-        INPUT:
+        INPUT_NUM:
             MOV ISERROR, 0
             CALL INPUTNUM
-            CMP ISERROR, 0
-            JG INPUT
             CALL CASTNUM
             CMP ISERROR, 0
-            JG INPUT
-            CALL INPUTARR
-            CMP ISERROR, 0
-            JG INPUT
-            CALL FINDMAX
-            CALL PRINTMAXNUM
-            CALL FINDSUM
-            CALL PRINTSUM
-            CALL SORTARRAY
-            CALL PRINTARRAY
-            RET
+            JG INPUT_NUM
+            INPUT_ARR:
+                MOV ISERROR, 0
+                CALL INPUTARR
+                CMP ISERROR, 0
+                JG INPUT_ARR
+                CALL FINDMAX
+                CALL PRINTMAXNUM
+                CALL FINDSUM
+                CALL PRINTSUM
+                CALL SORTARRAY
+                CALL PRINTARRAY
+                RET
     BEGIN ENDP
+    
+    INPUTNUM PROC NEAR
+        MOV AH, 09H
+        LEA DX, PROMPT
+        INT 21H
+            
+        CALL NEWLINE
+
+        MOV AH, 0AH  
+        LEA DX, NUMPAR
+        INT 021H
+        
+        CALL NEWLINE
+        RET
+    INPUTNUM ENDP
     
     INPUTARR PROC NEAR
         MOV AH, 09H
@@ -96,6 +112,15 @@ CSEG SEGMENT PARA 'Code'
             RET
     INPUTARR ENDP
     
+    INPUTARRNUM PROC NEAR
+        MOV AH, 0AH  
+        LEA DX, ARRNUMPAR
+        INT 021H
+        
+        CALL NEWLINE
+        RET
+    INPUTARRNUM ENDP
+    
     PRINTARRAY PROC NEAR
         MOV AH, 09H
         LEA DX, PRINTARRAYMSG
@@ -117,115 +142,6 @@ CSEG SEGMENT PARA 'Code'
             LOOP PRINT_ARRNUM
         RET
     PRINTARRAY ENDP
-
-    FINDMAX PROC NEAR
-        MOV CX, NUM
-        MOV ARRAY_OFFSET, 0
-        CHECK_MAXNUM:
-            PUSH CX
-            MOV BX, ARRAY_OFFSET
-            MOV AX, ARRAY + BX
-            MOV ARRNUM, AX            
-            CMP MAXNUM, AX
-            JGE FINDMAX_CONTINUE
-            MOV MAXNUM, AX
-            FINDMAX_CONTINUE:
-                INC ARRAY_OFFSET
-                INC ARRAY_OFFSET
-                POP CX
-                LOOP CHECK_MAXNUM
-        RET
-    FINDMAX ENDP
-    
-    FINDSUM PROC NEAR
-        MOV CX, NUM
-        MOV ARRAY_OFFSET, 0
-        ADD_SUM:
-            PUSH CX
-            MOV BX, ARRAY_OFFSET
-            MOV AX, ARRAY + BX
-            CMP AX, 0
-            JGE ADD_ARRAYNUM
-            NEG AX
-            SUB SUML, AX
-            SBB SUMH, 0
-            JMP ADD_SUM_CONTINUE
-            ADD_ARRAYNUM:      
-                ADD SUML, AX
-                ADC SUMH, 0
-            ADD_SUM_CONTINUE:
-                INC ARRAY_OFFSET
-                INC ARRAY_OFFSET
-                POP CX
-                LOOP ADD_SUM
-        RET
-    FINDSUM ENDP
-    
-    SORTARRAY PROC NEAR
-        MOV CX, NUM
-        MOV ARRAY_OFFSET, 0
-        CMP CX, 1
-        JLE RETURN_SORTARRAY
-        BUBBLE_SORT:
-            PUSH CX
-            MOV CX, NUM
-            DEC CX
-            MOV ARRAY_OFFSET, 0
-            BUBBLE_SORT_INNER:
-                MOV BX, ARRAY_OFFSET
-                MOV AX, ARRAY + BX
-                INC BX
-                INC BX
-                MOV DX, ARRAY + BX
-                CMP AX, DX
-                JLE SORT_CONTINUE
-                MOV ARRAY + BX, AX
-                DEC BX
-                DEC BX
-                MOV ARRAY + BX, DX
-                SORT_CONTINUE:
-                    INC ARRAY_OFFSET
-                    INC ARRAY_OFFSET
-                    LOOP BUBBLE_SORT_INNER
-            POP CX
-            LOOP BUBBLE_SORT
-        RETURN_SORTARRAY:
-            RET
-    SORTARRAY ENDP
-    
-    INPUTNUM PROC NEAR
-        MOV AH, 09H
-        LEA DX, PROMPT
-        INT 21H
-            
-        CALL NEWLINE
-
-        MOV AH, 0AH  
-        LEA DX, NUMPAR
-        INT 021H
-        
-        CALL NEWLINE
-        RET
-    INPUTNUM ENDP
-    
-    INPUTARRNUM PROC NEAR
-        MOV AH, 0AH  
-        LEA DX, ARRNUMPAR
-        INT 021H
-        
-        CALL NEWLINE
-        RET
-    INPUTARRNUM ENDP
-
-    NEWLINE PROC NEAR
-        MOV DL, CR
-        MOV AH, 02H
-        INT 21H
-        MOV DL, LF
-        MOV AH, 02H
-        INT 21H
-        RET
-    NEWLINE ENDP
     
     CASTARRNUM PROC NEAR
         MOV ARRNUM, 0
@@ -322,6 +238,81 @@ CSEG SEGMENT PARA 'Code'
             RET
     CASTNUM ENDP
     
+    FINDMAX PROC NEAR
+        MOV CX, NUM
+        MOV ARRAY_OFFSET, 0
+        CHECK_MAXNUM:
+            PUSH CX
+            MOV BX, ARRAY_OFFSET
+            MOV AX, ARRAY + BX
+            MOV ARRNUM, AX            
+            CMP MAXNUM, AX
+            JGE FINDMAX_CONTINUE
+            MOV MAXNUM, AX
+            FINDMAX_CONTINUE:
+                INC ARRAY_OFFSET
+                INC ARRAY_OFFSET
+                POP CX
+                LOOP CHECK_MAXNUM
+        RET
+    FINDMAX ENDP
+    
+    FINDSUM PROC NEAR
+        MOV CX, NUM
+        MOV ARRAY_OFFSET, 0
+        ADD_SUM:
+            PUSH CX
+            MOV BX, ARRAY_OFFSET
+            MOV AX, ARRAY + BX
+            CMP AX, 0
+            JGE ADD_ARRAYNUM
+            NEG AX
+            SUB SUML, AX
+            SBB SUMH, 0
+            JMP ADD_SUM_CONTINUE
+            ADD_ARRAYNUM:      
+                ADD SUML, AX
+                ADC SUMH, 0
+            ADD_SUM_CONTINUE:
+                INC ARRAY_OFFSET
+                INC ARRAY_OFFSET
+                POP CX
+                LOOP ADD_SUM
+        RET
+    FINDSUM ENDP
+    
+    SORTARRAY PROC NEAR
+        MOV CX, NUM
+        MOV ARRAY_OFFSET, 0
+        CMP CX, 1
+        JLE RETURN_SORTARRAY
+        BUBBLE_SORT:
+            PUSH CX
+            MOV CX, NUM
+            DEC CX
+            MOV ARRAY_OFFSET, 0
+            BUBBLE_SORT_INNER:
+                MOV BX, ARRAY_OFFSET
+                MOV AX, ARRAY + BX
+                INC BX
+                INC BX
+                MOV DX, ARRAY + BX
+                CMP AX, DX
+                JLE SORT_CONTINUE
+                MOV ARRAY + BX, AX
+                DEC BX
+                DEC BX
+                MOV ARRAY + BX, DX
+                SORT_CONTINUE:
+                    INC ARRAY_OFFSET
+                    INC ARRAY_OFFSET
+                    LOOP BUBBLE_SORT_INNER
+            POP CX
+            LOOP BUBBLE_SORT
+        RETURN_SORTARRAY:
+            RET
+    SORTARRAY ENDP
+    
     PRINTARRNUM PROC NEAR
         CMP ARRNUM, 0
         JGE M1_PRINTARRNUM
@@ -412,6 +403,16 @@ CSEG SEGMENT PARA 'Code'
         CALL NEWLINE
         RET
     PRINTMAXNUM ENDP
+    
+    NEWLINE PROC NEAR
+        MOV DL, CR
+        MOV AH, 02H
+        INT 21H
+        MOV DL, LF
+        MOV AH, 02H
+        INT 21H
+        RET
+    NEWLINE ENDP
     
     PRINTERR PROC NEAR
         MOV AH, 09H

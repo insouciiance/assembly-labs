@@ -1,10 +1,10 @@
+INCLUDE MACRO.LIB
+
 STSEG SEGMENT PARA STACK 'Stack'
     DW 32 DUP(?)
 STSEG ENDS
 
 DSEG SEGMENT PARA 'Data'
-    CR EQU 0DH
-    LF EQU 0AH
     MIN EQU -32768
     MAX EQU 32767
     
@@ -44,12 +44,7 @@ DSEG ENDS
 
 CSEG SEGMENT PARA 'Code'
     BEGIN PROC FAR
-        ASSUME CS:CSEG, DS:DSEG, SS:STSEG
-        PUSH DS
-        MOV AX, 0
-        PUSH AX
-        MOV AX, DSEG
-        MOV DS, AX
+        INIT CSEG, DSEG, STSEG ; MACRO
         
         INPUT_NUM:
             MOV ISERROR, 0
@@ -63,7 +58,9 @@ CSEG SEGMENT PARA 'Code'
                 CMP ISERROR, 0
                 JG INPUT_ARR
                 CALL FINDMAX
-                CALL PRINTMAXNUM
+                DOS21 MAXNUMMSG ; MACRO
+                PRINTNUM MAXNUM ; MACRO
+                NEWLINE ; MACRO
                 CALL FINDSUM
                 CALL PRINTSUM
                 CALL SORTARRAY
@@ -72,17 +69,15 @@ CSEG SEGMENT PARA 'Code'
     BEGIN ENDP
     
     INPUTNUM PROC NEAR
-        MOV AH, 09H
-        LEA DX, PROMPT
-        INT 21H
+        DOS21 PROMPT ; MACRO
             
-        CALL NEWLINE
+        NEWLINE ; MACRO
 
         MOV AH, 0AH  
         LEA DX, NUMPAR
         INT 021H
         
-        CALL NEWLINE
+        NEWLINE ; MACRO
         RET
     INPUTNUM ENDP
     
@@ -90,7 +85,7 @@ CSEG SEGMENT PARA 'Code'
         MOV AH, 09H
         LEA DX, ENTERARRAYMSG
         INT 21H
-        CALL NEWLINE
+        NEWLINE ; MACRO
         MOV CX, NUM
         MOV ARRAY_OFFSET, 0
         PROCESS_ARRNUM:
@@ -117,15 +112,13 @@ CSEG SEGMENT PARA 'Code'
         LEA DX, ARRNUMPAR
         INT 021H
         
-        CALL NEWLINE
+        NEWLINE ; MACRO
         RET
     INPUTARRNUM ENDP
 
     PRINTARRAY PROC NEAR
-        MOV AH, 09H
-        LEA DX, PRINTARRAYMSG
-        INT 21H
-        CALL NEWLINE
+        DOS21 PRINTARRAYMSG ; MACRO
+        NEWLINE ; MACRO
         
         MOV CX, NUM
         MOV ARRAY_OFFSET, 0
@@ -134,8 +127,8 @@ CSEG SEGMENT PARA 'Code'
             MOV BX, ARRAY_OFFSET
             MOV AX, ARRAY + BX
             MOV ARRNUM, AX
-            CALL PRINTARRNUM
-            CALL NEWLINE
+            PRINTNUM ARRNUM ; MACRO
+            NEWLINE ; MACRO
             INC ARRAY_OFFSET
             INC ARRAY_OFFSET
             POP CX
@@ -189,7 +182,7 @@ CSEG SEGMENT PARA 'Code'
         RETURN_CASTARRNUM:
             RET
         RETURNERR_CASTARRNUM:
-            CALL PRINTERR
+            DOS21 ERRORMSG
             MOV ISERROR, 01H
             RET
         CASTARRNUM ENDP
@@ -233,7 +226,7 @@ CSEG SEGMENT PARA 'Code'
             JLE RETURNERR
             RET
         RETURNERR:
-            CALL PRINTERR
+            DOS21 ERRORMSG
             MOV ISERROR, 01H
             RET
     CASTNUM ENDP
@@ -313,36 +306,8 @@ CSEG SEGMENT PARA 'Code'
             RET
     SORTARRAY ENDP
     
-    PRINTARRNUM PROC NEAR
-        CMP ARRNUM, 0
-        JGE M1_PRINTARRNUM
-        MOV AL, '-'
-        INT 29H
-        NEG ARRNUM
-        M1_PRINTARRNUM:
-            MOV CX, 0
-            MOV BX, 0AH
-            MOV DX, 0
-            MOV AX, ARRNUM
-        M2_PRINTARRNUM:
-            IDIV BX
-            OR DL, 030H
-            PUSH DX
-            INC CX
-            MOV DX, 0
-            TEST AX, AX
-            JNZ M2_PRINTARRNUM
-        M3_PRINTARRNUM:
-            POP AX
-            INT 029H
-            LOOP M3_PRINTARRNUM
-        RET
-    PRINTARRNUM ENDP
-    
     PRINTSUM PROC NEAR
-        MOV AH, 09H
-        LEA DX, SUMMSG
-        INT 21H
+        DOS21 SUMMSG ; MACRO
         
         CMP SUMH, 0
         JGE M1
@@ -369,57 +334,8 @@ CSEG SEGMENT PARA 'Code'
             POP AX
             INT 029H
             LOOP M3
-        CALL NEWLINE
+        NEWLINE ; MACRO
         RET
     PRINTSUM ENDP
-    
-    PRINTMAXNUM PROC NEAR
-        MOV AH, 09H
-        LEA DX, MAXNUMMSG
-        INT 21H
-    
-        CMP MAXNUM, 0
-        JGE M1_PRINTMAXNUM
-        MOV AL, '-'
-        INT 29H
-        NEG MAXNUM
-        M1_PRINTMAXNUM:
-            MOV CX, 0
-            MOV BX, 0AH
-            MOV DX, 0
-            MOV AX, MAXNUM
-        M2_PRINTMAXNUM:
-            IDIV BX
-            OR DL, 030H
-            PUSH DX
-            INC CX
-            MOV DX, 0
-            TEST AX, AX
-            JNZ M2_PRINTMAXNUM
-        M3_PRINTMAXNUM:
-            POP AX
-            INT 029H
-            LOOP M3_PRINTMAXNUM
-        CALL NEWLINE
-        RET
-    PRINTMAXNUM ENDP
-    
-    NEWLINE PROC NEAR
-        MOV DL, CR
-        MOV AH, 02H
-        INT 21H
-        MOV DL, LF
-        MOV AH, 02H
-        INT 21H
-        RET
-    NEWLINE ENDP
-    
-    PRINTERR PROC NEAR
-        MOV AH, 09H
-        LEA DX, ERRORMSG
-        INT 021H 
-        CALL NEWLINE
-        RET
-    PRINTERR ENDP
 CSEG ENDS
 END BEGIN

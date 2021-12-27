@@ -1,0 +1,57 @@
+INIT MACRO CSEG, DSEG, STSEG
+    ASSUME CS:CSEG, DS:DSEG, SS:STSEG
+    PUSH DS
+    MOV AX, 0
+    PUSH AX
+    MOV AX, DSEG
+    MOV DS, AX
+ENDM
+
+NEWLINE MACRO
+    MOV DL, 0DH
+    MOV AH, 02H
+    INT 21H
+    MOV DL, 0AH
+    MOV AH, 02H
+    INT 21H
+ENDM
+
+DOS21 MACRO MSG
+    MOV AH, 09H
+    LEA DX, MSG
+    INT 021H
+ENDM
+
+PRINTNUM MACRO NUM
+    LOCAL M1, M2, M3
+    PUSH AX
+    PUSH BX
+    PUSH CX
+    PUSH DX
+    CMP NUM, 0
+    JGE M1
+    MOV AL, '-'
+    INT 29H
+    NEG NUM
+    M1:
+        MOV CX, 0
+        MOV BX, 0AH
+        MOV DX, 0
+        MOV AX, NUM
+    M2:
+        IDIV BX
+        OR DL, 030H
+        PUSH DX
+        INC CX
+        MOV DX, 0
+        TEST AX, AX
+        JNZ M2
+    M3:
+        POP AX
+        INT 029H
+        LOOP M3
+        POP DX
+        POP CX
+        POP BX
+        POP AX
+ENDM

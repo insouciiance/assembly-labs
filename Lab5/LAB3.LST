@@ -1,0 +1,548 @@
+Turbo Assembler	 Version 4.0	    30/11/21 22:48:30	    Page 1
+Lab3.asm
+
+
+
+      1
+      2				     INCLUDE MACRO.LIB
+1     3				     INIT MACRO	CSEG, DSEG, STSEG
+1     4					 ASSUME	CS:CSEG, DS:DSEG, SS:STSEG
+1     5					 PUSH DS
+1     6					 MOV AX, 0
+1     7					 PUSH AX
+1     8					 MOV AX, DSEG
+1     9					 MOV DS, AX
+1    10				     ENDM
+1    11
+1    12				     NEWLINE MACRO
+1    13					 MOV DL, 0DH
+1    14					 MOV AH, 02H
+1    15					 INT 21H
+1    16					 MOV DL, 0AH
+1    17					 MOV AH, 02H
+1    18					 INT 21H
+1    19				     ENDM
+1    20
+1    21				     DOS21 MACRO MSG
+1    22					 MOV AH, 09H
+1    23					 LEA DX, MSG
+1    24					 INT 021H
+1    25				     ENDM
+1    26
+1    27				     PRINTNUM MACRO NUM
+1    28					 LOCAL M1, M2, M3
+1    29					     CMP NUM, 0
+1    30					     JGE M1
+1    31					     MOV AL, '-'
+1    32					     INT 29H
+1    33					     NEG NUM
+1    34					     M1:
+1    35						 MOV CX, 0
+1    36						 MOV BX, 0AH
+1    37						 MOV DX, 0
+1    38						 MOV AX, NUM
+1    39					     M2:
+1    40						 IDIV BX
+1    41						 OR DL,	030H
+1    42						 PUSH DX
+1    43						 INC CX
+1    44						 MOV DX, 0
+1    45						 TEST AX, AX
+1    46						 JNZ M2
+1    47					     M3:
+1    48						 POP AX
+1    49						 INT 029H
+1    50						 LOOP M3
+1    51				     ENDM
+     52				     PURGE PRINTNUM
+     53
+     54	0000			     STSEG SEGMENT PARA	STACK 'Stack'
+     55	0000  40*(????)			 DW 64 DUP (?)
+     56	0080			     STSEG ENDS
+     57
+Turbo Assembler	 Version 4.0	    30/11/21 22:48:30	    Page 2
+Lab3.asm
+
+
+
+     58	0000			     DSEG SEGMENT PARA 'Data'
+     59	      =-8000			 MIN EQU -32768
+     60	      =7FFF			 MAX EQU 32767
+     61
+     62	0000				 XPAR LABEL BYTE
+     63	0000  14			 XMAXLEN DB 20
+     64	0001  ??			 XLEN DB ?
+     65	0002  14*(20) 24		 XFLD DB 20 DUP(' '), '$'
+     66
+     67	0017				 YPAR LABEL BYTE
+     68	0017  14			 YMAXLEN DB 20
+     69	0018  ??			 YLEN DB ?
+     70	0019  14*(20) 24		 YFLD DB 20 DUP(' '), '$'
+     71
+     72	002E  45 6E 74 65 72 20	78+	 PROMPTX DB 'Enter x:',	'$'
+     73	      3A 24
+     74	0037  45 6E 74 65 72 20	79+	 PROMPTY DB 'Enter y:',	'$'
+     75	      3A 24
+     76	0040  45 6E 74 65 72 65	64+	 ERRORMSG DB 'Entered number was invalid.', '$'
+     77	      20 6E 75 6D 62 65	72+
+     78	      20 77 61 73 20 69	6E+
+     79	      76 61 6C 69 64 2E	24
+     80
+     81	005C  ????			 NUMX DW ?
+     82	005E  ????			 NUMY DW ?
+     83	0060  ????			 NUMH DW ?
+     84	0062  ????			 NUML DW ?
+     85	0064  0001			 POSITION DW 1
+     86	0066  000A			 NUMRADIX DW 10
+     87
+     88	0068  0000			 FUNC1AUX DW 0
+     89	006A  0000			 FUNC2DIVISOR DW 0
+     90	006C  0002			 FUNC3MULTIPLIER DW 2
+     91
+     92	006E  0000			 CAST_DIVISOR DW 0
+     93	0070  05			 DECIMAL_PRECISION DB 5
+     94
+     95	0071  ??			 ISERROR DB ?
+     96	0072			     DSEG ENDS
+     97
+     98	0000			     CSEG SEGMENT PARA 'Code'
+     99	0000				 BEGIN PROC FAR
+    100					 INIT CSEG, DSEG, STSEG	; MACRO
+    101
+    102	000A				     INPUT_X:
+    103	000A  C6 06 0071r 00			 MOV ISERROR, 0
+    104	000F  E8 005F				 CALL INPUTX
+    105	0012  80 3E 0071r 00			 CMP ISERROR, 0
+    106	0017  7F F1				 JG INPUT_X
+    107	0019  E8 00A3				 CALL CASTX
+    108	001C  80 3E 0071r 00			 CMP ISERROR, 0
+    109	0021  7F E7				 JG INPUT_X
+    110
+    111	0023  83 3E 005Cr FF			 CMP NUMX, -01H
+    112	0028  7F 06				 JG CHECKFUNC2
+    113	002A  E8 01DE				 CALL FUNC3
+    114	002D  EB 3A 90				 JMP RETURN_INT
+Turbo Assembler	 Version 4.0	    30/11/21 22:48:30	    Page 3
+Lab3.asm
+
+
+
+    115	0030					 CHECKFUNC2:
+    116	0030  83 3E 005Cr 01			     CMP NUMX, 01H
+    117	0035  7F 06				     JG	CHECKFUNC1
+    118	0037  E8 01AC				     CALL FUNC2
+    119	003A  EB 31 90				     JMP RETURN_DECIMAL
+    120	003D					     CHECKFUNC1:
+    121	003D  83 3E 005Cr 03				 CMP NUMX, 03H
+    122	0042  7F 06					 JG INPUT_Y
+    123	0044  E8 0176					 CALL FUNC1
+    124	0047  EB 24 90					 JMP RETURN_DECIMAL
+    125	004A						 INPUT_Y:
+    126	004A  C6 06 0071r 00				     MOV ISERROR, 0
+    127	004F  E8 0046					     CALL INPUTY
+    128	0052  80 3E 0071r 00				     CMP ISERROR, 0
+    129	0057  7F F1					     JG	INPUT_Y
+    130	0059  E8 00E2					     CALL CASTY
+    131	005C  80 3E 0071r 00				     CMP ISERROR, 0
+    132	0061  7F E7					     JG	INPUT_Y
+    133	0063  E8 01B4					     CALL FUNC4
+    134	0066  EB 01 90					     JMP RETURN_INT
+    135	0069					 RETURN_INT:
+    136	0069  E8 01E6				     CALL CASTRESULT
+    137	006C  CB				     RET
+    138	006D					 RETURN_DECIMAL:
+    139	006D  E8 0220				     CALL CASTDECIMAL
+    140	0070  CB				     RET
+    141	0071				 BEGIN ENDP
+    142
+    143	0071				 INPUTX	PROC NEAR
+    144	0071  B4 09			     MOV AH, 09H
+    145	0073  BA 002Er			     LEA DX, PROMPTX
+    146	0076  CD 21			     INT 21H
+    147
+    148					     NEWLINE ; MACRO
+    149
+    150	0084  B4 0A			     MOV AH, 0AH
+    151	0086  BA 0000r			     LEA DX, XPAR
+    152	0089  CD 21			     INT 021H
+    153
+    154					     NEWLINE ; MACRO
+    155	0097  C3			     RET
+    156	0098				 INPUTX	ENDP
+    157
+    158	0098				 INPUTY	PROC NEAR
+    159	0098  B4 09			     MOV AH, 09H
+    160	009A  BA 0037r			     LEA DX, PROMPTY
+    161	009D  CD 21			     INT 21H
+    162
+    163					     NEWLINE ; MACRO
+    164
+    165	00AB  B4 0A			     MOV AH, 0AH
+    166	00AD  BA 0017r			     LEA DX, YPAR
+    167	00B0  CD 21			     INT 021H
+    168
+    169					     NEWLINE ; MACRO
+    170	00BE  C3			     RET
+    171	00BF				 INPUTY	ENDP
+Turbo Assembler	 Version 4.0	    30/11/21 22:48:30	    Page 4
+Lab3.asm
+
+
+
+    172
+    173	00BF				 CASTX PROC NEAR
+    174	00BF  C7 06 005Cr 0000		     MOV NUMX, 0
+    175	00C5  C7 06 0064r 0001		     MOV POSITION, 01H
+    176	00CB  B5 00			     MOV CH, 0
+    177	00CD  8A 0E 0001r		     MOV CL, XLEN
+    178	00D1  8B D9			     MOV BX, CX
+    179	00D3  4B			     DEC BX
+    180	00D4  BE 0002r			     LEA SI, XFLD
+    181	00D7  8B 04			     MOV AX, [SI]
+    182	00D9  3C 2D			     CMP AL, '-'
+    183	00DB  75 01			     JNE PROCESS_DIGITX
+    184	00DD  49			     DEC CX
+    185	00DE				     PROCESS_DIGITX:
+    186	00DE  B4 00				 MOV AH, 0
+    187	00E0  8A 00				 MOV AL, [SI + BX]
+    188	00E2  3C 30				 CMP AL, 030H
+    189	00E4  7C 3F				 JL RETURNERR_CASTX
+    190	00E6  3C 39				 CMP AL, 039H
+    191	00E8  7F 3B				 JG RETURNERR_CASTX
+    192	00EA  2C 30				 SUB AL, 030H
+    193	00EC  F7 2E 0064r			 IMUL POSITION
+    194	00F0  70 33				 JO RETURNERR_CASTX
+    195	00F2  01 06 005Cr			 ADD NUMX, AX
+    196	00F6  71 0E				 JNO NEXT_CASTX
+    197	00F8  81 3E 005Cr 8000			 CMP NUMX, MIN
+    198	00FE  75 25				 JNE RETURNERR_CASTX
+    199	0100  8B 04				 MOV AX, [SI]
+    200	0102  3C 2D				 CMP AL, '-'
+    201	0104  75 1F				 JNE RETURNERR_CASTX
+    202	0106					 NEXT_CASTX:
+    203	0106  4B				     DEC BX
+    204	0107  83 F9 01				     CMP CX, 01H
+    205	010A  74 0E				     JE	PRERETURN_CASTX
+    206	010C  A1 0064r				     MOV AX, POSITION
+    207	010F  F7 2E 0066r			     IMUL NUMRADIX
+    208	0113  70 10				     JO	RETURNERR_CASTX
+    209	0115  A3 0064r				     MOV POSITION, AX
+    210	0118  E2 C4				     LOOP PROCESS_DIGITX
+    211	011A				     PRERETURN_CASTX:
+    212	011A  8B 04				 MOV AX, [SI]
+    213	011C  3C 2D				 CMP AL, '-'
+    214	011E  75 04				 JNE RETURN_CASTX
+    215	0120  F7 1E 005Cr			 NEG NUMX
+    216	0124				     RETURN_CASTX:
+    217	0124  C3				 RET
+    218	0125				     RETURNERR_CASTX:
+    219						 DOS21 ERRORMSG	; MACRO
+    220						 NEWLINE ; MACRO
+    221	0138  C6 06 0071r 01			 MOV ISERROR, 01H
+    222	013D  C3				 RET
+    223	013E				 CASTX ENDP
+    224
+    225	013E				 CASTY PROC NEAR
+    226	013E  C7 06 005Er 0000		     MOV NUMY, 0
+    227	0144  C7 06 0064r 0001		     MOV POSITION, 01H
+    228	014A  B5 00			     MOV CH, 0
+Turbo Assembler	 Version 4.0	    30/11/21 22:48:30	    Page 5
+Lab3.asm
+
+
+
+    229	014C  8A 0E 0018r		     MOV CL, YLEN
+    230	0150  8B D9			     MOV BX, CX
+    231	0152  4B			     DEC BX
+    232	0153  BE 0019r			     LEA SI, YFLD
+    233	0156  8B 04			     MOV AX, [SI]
+    234	0158  3C 2D			     CMP AL, '-'
+    235	015A  75 01			     JNE PROCESS_DIGITY
+    236	015C  49			     DEC CX
+    237	015D				     PROCESS_DIGITY:
+    238	015D  B4 00				 MOV AH, 0
+    239	015F  8A 00				 MOV AL, [SI + BX]
+    240	0161  3C 30				 CMP AL, 030H
+    241	0163  7C 3F				 JL RETURNERR_CASTY
+    242	0165  3C 39				 CMP AL, 039H
+    243	0167  7F 3B				 JG RETURNERR_CASTY
+    244	0169  2C 30				 SUB AL, 030H
+    245	016B  F7 2E 0064r			 IMUL POSITION
+    246	016F  70 33				 JO RETURNERR_CASTY
+    247	0171  01 06 005Er			 ADD NUMY, AX
+    248	0175  71 0E				 JNO NEXT_CASTY
+    249	0177  81 3E 005Er 8000			 CMP NUMY, MIN
+    250	017D  75 25				 JNE RETURNERR_CASTY
+    251	017F  8B 04				 MOV AX, [SI]
+    252	0181  3C 2D				 CMP AL, '-'
+    253	0183  75 1F				 JNE RETURNERR_CASTY
+    254	0185					 NEXT_CASTY:
+    255	0185  4B				     DEC BX
+    256	0186  83 F9 01				     CMP CX, 01H
+    257	0189  74 0E				     JE	PRERETURN_CASTY
+    258	018B  A1 0064r				     MOV AX, POSITION
+    259	018E  F7 2E 0066r			     IMUL NUMRADIX
+    260	0192  70 10				     JO	RETURNERR_CASTY
+    261	0194  A3 0064r				     MOV POSITION, AX
+    262	0197  E2 C4				     LOOP PROCESS_DIGITY
+    263	0199				     PRERETURN_CASTY:
+    264	0199  8B 04				 MOV AX, [SI]
+    265	019B  3C 2D				 CMP AL, '-'
+    266	019D  75 04				 JNE RETURN_CASTY
+    267	019F  F7 1E 005Er			 NEG NUMY
+    268	01A3				     RETURN_CASTY:
+    269	01A3  C3				 RET
+    270	01A4				     RETURNERR_CASTY:
+    271						 DOS21 ERRORMSG	; MACRO
+    272						 NEWLINE ; MACRO
+    273	01B7  C6 06 0071r 01			 MOV ISERROR, 01H
+    274	01BC  C3				 RET
+    275	01BD				 CASTY ENDP
+    276
+    277	01BD				 FUNC1 PROC NEAR ; result = 35 / X + X^3
+    278	01BD  B8 0023			     MOV AX, 35
+    279	01C0  F7 3E 005Cr		     IDIV NUMX
+    280	01C4  8B 1E 005Cr		     MOV BX, NUMX
+    281	01C8  89 1E 006Er		     MOV CAST_DIVISOR, BX
+    282	01CC  89 16 0060r		     MOV NUMH, DX
+    283	01D0  A3 0068r			     MOV FUNC1AUX, AX
+    284	01D3  A1 005Cr			     MOV AX, NUMX
+    285	01D6  F7 2E 005Cr		     IMUL NUMX
+Turbo Assembler	 Version 4.0	    30/11/21 22:48:30	    Page 6
+Lab3.asm
+
+
+
+    286	01DA  F7 2E 005Cr		     IMUL NUMX
+    287	01DE  03 06 0068r		     ADD AX, FUNC1AUX
+    288	01E2  A3 0062r			     MOV NUML, AX
+    289	01E5  C3			     RET
+    290	01E6				 FUNC1 ENDP
+    291
+    292	01E6				 FUNC2 PROC NEAR ; result = X /	(X^2 + 1)
+    293	01E6  A1 005Cr			     MOV AX, NUMX
+    294	01E9  F7 2E 005Cr		     IMUL NUMX
+    295	01ED  40			     INC AX
+    296	01EE  A3 006Ar			     MOV FUNC2DIVISOR, AX
+    297	01F1  8B 1E 006Ar		     MOV BX, FUNC2DIVISOR
+    298	01F5  89 1E 006Er		     MOV CAST_DIVISOR, BX
+    299	01F9  A1 005Cr			     MOV AX, NUMX
+    300	01FC  BA 0000			     MOV DX, 0
+    301	01FF  F7 3E 006Ar		     IDIV FUNC2DIVISOR
+    302	0203  A3 0062r			     MOV NUML, AX
+    303	0206  89 16 0060r		     MOV NUMH, DX
+    304	020A  C3			     RET
+    305	020B				 FUNC2 ENDP
+    306
+    307	020B				 FUNC3 PROC NEAR ; result = 2X
+    308	020B  A1 005Cr			     MOV AX, NUMX
+    309	020E  F7 2E 006Cr		     IMUL FUNC3MULTIPLIER
+    310	0212  89 16 0060r		     MOV NUMH, DX
+    311	0216  A3 0062r			     MOV NUML, AX
+    312	0219  C3			     RET
+    313	021A				 FUNC3 ENDP
+    314
+    315	021A				 FUNC4 PROC NEAR ; result = X +	Y
+    316	021A  A1 005Cr			     MOV AX, NUMX
+    317	021D  83 3E 005Er 00		     CMP NUMY, 0
+    318	0222  7D 1B			     JGE ADDY
+    319	0224  F7 1E 005Er		     NEG NUMY
+    320	0228  2B 06 005Er		     SUB AX, NUMY
+    321	022C  A3 0062r			     MOV NUML, AX
+    322	022F  C7 06 0060r 0000		     MOV NUMH, 0
+    323	0235  79 1A			     JNS RETURNFUNC4
+    324	0237  83 1E 0060r 00		     SBB NUMH, 0
+    325	023C  EB 13 90			     JMP RETURNFUNC4
+    326	023F				     ADDY:
+    327	023F  03 06 005Er			 ADD AX, NUMY
+    328	0243  A3 0062r				 MOV NUML, AX
+    329	0246  C7 06 0060r 0000			 MOV NUMH, 0
+    330	024C  83 16 0060r 00			 ADC NUMH, 0
+    331	0251					 RETURNFUNC4:
+    332	0251  C3				 RET
+    333	0252				 FUNC4 ENDP
+    334
+    335	0252				 CASTRESULT PROC NEAR
+    336	0252  83 3E 0060r 00		     CMP NUMH, 0
+    337	0257  7D 16			     JGE CAST_1
+    338	0259  B0 2D			     MOV AL, '-'
+    339	025B  CD 29			     INT 29H
+    340	025D  F7 16 0060r		     NOT NUMH
+    341	0261  F7 16 0062r		     NOT NUML
+    342	0265  83 06 0062r 01		     ADD NUML, 01H
+Turbo Assembler	 Version 4.0	    30/11/21 22:48:30	    Page 7
+Lab3.asm
+
+
+
+    343	026A  83 16 0060r 00		     ADC NUMH, 0
+    344	026F				     CAST_1:
+    345	026F  B9 0000				 MOV CX, 0
+    346	0272  BB 000A				 MOV BX, 0AH
+    347	0275  8B 16 0060r			 MOV DX, NUMH
+    348	0279  A1 0062r				 MOV AX, NUML
+    349	027C				     CAST_2:
+    350	027C  F7 FB				 IDIV BX
+    351	027E  80 CA 30				 OR DL,	030H
+    352	0281  52				 PUSH DX
+    353	0282  41				 INC CX
+    354	0283  BA 0000				 MOV DX, 0
+    355	0286  85 C0				 TEST AX, AX
+    356	0288  75 F2				 JNZ CAST_2
+    357	028A				     CAST_3:
+    358	028A  58				 POP AX
+    359	028B  CD 29				 INT 029H
+    360	028D  E2 FB				 LOOP CAST_3
+    361	028F  C3			     RET
+    362	0290				 CASTRESULT ENDP
+    363
+    364	0290				 CASTDECIMAL PROC NEAR
+    365	0290  83 3E 0062r 00		     CMP NUML, 0
+    366	0295  7D 08			     JGE CAST_INT1
+    367	0297  B0 2D			     MOV AL, '-'
+    368	0299  CD 29			     INT 29H
+    369	029B  F7 1E 0062r		     NEG NUML
+    370	029F				     CAST_INT1:
+    371	029F  B9 0000				 MOV CX, 0
+    372	02A2  BB 000A				 MOV BX, 0AH
+    373	02A5  A1 0062r				 MOV AX, NUML
+    374	02A8  BA 0000				 MOV DX, 0
+    375	02AB				     CAST_INT2:
+    376	02AB  F7 FB				 IDIV BX
+    377	02AD  80 CA 30				 OR DL,	030H
+    378	02B0  52				 PUSH DX
+    379	02B1  41				 INC CX
+    380	02B2  BA 0000				 MOV DX, 0
+    381	02B5  85 C0				 TEST AX, AX
+    382	02B7  75 F2				 JNZ CAST_INT2
+    383	02B9				     CAST_INT3:
+    384	02B9  58				 POP AX
+    385	02BA  CD 29				 INT 029H
+    386	02BC  E2 FB				 LOOP CAST_INT3
+    387
+    388	02BE  83 3E 0060r 00		     CMP NUMH, 0
+    389	02C3  74 29			     JE	DECIMAL_RETURN
+    390
+    391	02C5  B8 002E			     MOV AX, 02EH ; dot(.)
+    392	02C8  CD 29			     INT 029H
+    393
+    394	02CA  A1 0060r			     MOV AX, NUMH
+    395	02CD				     CAST_DECIMAL1:
+    396	02CD  F7 2E 0066r			 IMUL NUMRADIX
+    397	02D1  F7 3E 006Er			 IDIV CAST_DIVISOR
+    398	02D5  0D 0030				 OR AX,	030H
+    399	02D8  CD 29				 INT 029H
+Turbo Assembler	 Version 4.0	    30/11/21 22:48:30	    Page 8
+Lab3.asm
+
+
+
+    400	02DA  8B C2				 MOV AX, DX
+    401	02DC  FE 0E 0070r			 DEC DECIMAL_PRECISION
+    402	02E0  80 3E 0070r 00			 CMP DECIMAL_PRECISION,	0
+    403	02E5  7E 07				 JLE DECIMAL_RETURN
+    404	02E7  3D 0000				 CMP AX, 0
+    405	02EA  74 02				 JE DECIMAL_RETURN
+    406	02EC  EB DF				 JMP CAST_DECIMAL1
+    407	02EE				     DECIMAL_RETURN:
+    408	02EE  C3				 RET
+    409	02EF				 CASTDECIMAL ENDP
+    410	02EF			     CSEG ENDS
+    411				     END BEGIN
+Turbo Assembler	 Version 4.0	    30/11/21 22:48:30	    Page 9
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??DATE				  Text	 "30/11/21"
+??FILENAME			  Text	 "Lab3	  "
+??TIME				  Text	 "22:48:30"
+??VERSION			  Number 0400
+@CPU				  Text	 0101H
+@CURSEG				  Text	 CSEG
+@FILENAME			  Text	 LAB3
+@WORDSIZE			  Text	 2
+ADDY				  Near	 CSEG:023F
+BEGIN				  Far	 CSEG:0000
+CASTDECIMAL			  Near	 CSEG:0290
+CASTRESULT			  Near	 CSEG:0252
+CASTX				  Near	 CSEG:00BF
+CASTY				  Near	 CSEG:013E
+CAST_1				  Near	 CSEG:026F
+CAST_2				  Near	 CSEG:027C
+CAST_3				  Near	 CSEG:028A
+CAST_DECIMAL1			  Near	 CSEG:02CD
+CAST_DIVISOR			  Word	 DSEG:006E
+CAST_INT1			  Near	 CSEG:029F
+CAST_INT2			  Near	 CSEG:02AB
+CAST_INT3			  Near	 CSEG:02B9
+CHECKFUNC1			  Near	 CSEG:003D
+CHECKFUNC2			  Near	 CSEG:0030
+DECIMAL_PRECISION		  Byte	 DSEG:0070
+DECIMAL_RETURN			  Near	 CSEG:02EE
+ERRORMSG			  Byte	 DSEG:0040
+FUNC1				  Near	 CSEG:01BD
+FUNC1AUX			  Word	 DSEG:0068
+FUNC2				  Near	 CSEG:01E6
+FUNC2DIVISOR			  Word	 DSEG:006A
+FUNC3				  Near	 CSEG:020B
+FUNC3MULTIPLIER			  Word	 DSEG:006C
+FUNC4				  Near	 CSEG:021A
+INPUTX				  Near	 CSEG:0071
+INPUTY				  Near	 CSEG:0098
+INPUT_X				  Near	 CSEG:000A
+INPUT_Y				  Near	 CSEG:004A
+ISERROR				  Byte	 DSEG:0071
+MAX				  Number 7FFF
+MIN				  Number -8000
+NEXT_CASTX			  Near	 CSEG:0106
+NEXT_CASTY			  Near	 CSEG:0185
+NUMH				  Word	 DSEG:0060
+NUML				  Word	 DSEG:0062
+NUMRADIX			  Word	 DSEG:0066
+NUMX				  Word	 DSEG:005C
+NUMY				  Word	 DSEG:005E
+POSITION			  Word	 DSEG:0064
+PRERETURN_CASTX			  Near	 CSEG:011A
+PRERETURN_CASTY			  Near	 CSEG:0199
+PROCESS_DIGITX			  Near	 CSEG:00DE
+PROCESS_DIGITY			  Near	 CSEG:015D
+PROMPTX				  Byte	 DSEG:002E
+Turbo Assembler	 Version 4.0	    30/11/21 22:48:30	    Page 10
+Symbol Table
+
+
+
+PROMPTY				  Byte	 DSEG:0037
+RETURNERR_CASTX			  Near	 CSEG:0125
+RETURNERR_CASTY			  Near	 CSEG:01A4
+RETURNFUNC4			  Near	 CSEG:0251
+RETURN_CASTX			  Near	 CSEG:0124
+RETURN_CASTY			  Near	 CSEG:01A3
+RETURN_DECIMAL			  Near	 CSEG:006D
+RETURN_INT			  Near	 CSEG:0069
+XFLD				  Byte	 DSEG:0002
+XLEN				  Byte	 DSEG:0001
+XMAXLEN				  Byte	 DSEG:0000
+XPAR				  Byte	 DSEG:0000
+YFLD				  Byte	 DSEG:0019
+YLEN				  Byte	 DSEG:0018
+YMAXLEN				  Byte	 DSEG:0017
+YPAR				  Byte	 DSEG:0017
+
+Macro Name
+
+DOS21
+INIT
+NEWLINE
+PRINTNUM
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+CSEG				  16  02EF Para	  none	  CODE
+DSEG				  16  0072 Para	  none	  DATA
+STSEG				  16  0080 Para	  Stack	  STACK
+

@@ -1,0 +1,291 @@
+Turbo Assembler	 Version 4.0	    30/11/21 22:42:40	    Page 1
+Lab2.asm
+
+
+
+      1
+      2					 INCLUDE MACRO.LIB
+1     3				     INIT MACRO	CSEG, DSEG, STSEG
+1     4					 ASSUME	CS:CSEG, DS:DSEG, SS:STSEG
+1     5					 PUSH DS
+1     6					 MOV AX, 0
+1     7					 PUSH AX
+1     8					 MOV AX, DSEG
+1     9					 MOV DS, AX
+1    10				     ENDM
+1    11
+1    12				     NEWLINE MACRO
+1    13					 MOV DL, 0DH
+1    14					 MOV AH, 02H
+1    15					 INT 21H
+1    16					 MOV DL, 0AH
+1    17					 MOV AH, 02H
+1    18					 INT 21H
+1    19				     ENDM
+1    20
+1    21				     DOS21 MACRO MSG
+1    22					 MOV AH, 09H
+1    23					 LEA DX, MSG
+1    24					 INT 021H
+1    25				     ENDM
+1    26
+1    27				     PRINTNUM MACRO NUM
+1    28					 LOCAL M1, M2, M3
+1    29					     CMP NUM, 0
+1    30					     JGE M1
+1    31					     MOV AL, '-'
+1    32					     INT 29H
+1    33					     NEG NUM
+1    34					     M1:
+1    35						 MOV CX, 0
+1    36						 MOV BX, 0AH
+1    37						 MOV DX, 0
+1    38						 MOV AX, NUM
+1    39					     M2:
+1    40						 IDIV BX
+1    41						 OR DL,	030H
+1    42						 PUSH DX
+1    43						 INC CX
+1    44						 MOV DX, 0
+1    45						 TEST AX, AX
+1    46						 JNZ M2
+1    47					     M3:
+1    48						 POP AX
+1    49						 INT 029H
+1    50						 LOOP M3
+1    51				     ENDM
+     52				     PURGE PRINTNUM
+     53
+     54	0000			     STSEG SEGMENT PARA	STACK 'Stack'
+     55	0000  20*(????)			 DW 32 DUP(?)
+     56	0040			     STSEG ENDS
+     57
+Turbo Assembler	 Version 4.0	    30/11/21 22:42:40	    Page 2
+Lab2.asm
+
+
+
+     58	0000			     DSEG SEGMENT PARA 'Data'
+     59	      =000D			 CR EQU	0DH
+     60	      =000A			 LF EQU	0AH
+     61	      =-8000			 MIN EQU -32768
+     62	      =7FFF			 MAX EQU 32767
+     63
+     64	0000				 NUMPAR	LABEL BYTE
+     65	0000  14			 MAXLEN	DB 20
+     66	0001  ??			 NUMLEN	DB ?
+     67	0002  14*(20) 24		 NUMFLD	DB 20 DUP(' '),	'$'
+     68
+     69	0017  4E 75 6D 62 65 72	3F+	 PROMPT	DB 'Number?', '$'
+     70	      24
+     71	001F  45 6E 74 65 72 65	64+	 ERRORMSG DB 'Entered number was invalid.', '$'
+     72	      20 6E 75 6D 62 65	72+
+     73	      20 77 61 73 20 69	6E+
+     74	      76 61 6C 69 64 2E	24
+     75	003B  0000			 NUM DW	0
+     76	003D  0000			 NUMH DW 0
+     77	003F  0000			 NUML DW 0
+     78	0041  0001			 POSITION DW 1
+     79	0043  000A			 NUMRADIX DW 10
+     80	0045  0007			 MULTIPLIER DW 7
+     81	0047  00			 ISERROR DB 0
+     82	0048			     DSEG ENDS
+     83
+     84	0000			     CSEG SEGMENT PARA 'Code'
+     85	0000				 BEGIN PROC FAR
+     86					     INIT CSEG,	DSEG, STSEG ; MACRO
+     87	000A				     INPUT:
+     88	000A  C6 06 0047r 00			 MOV ISERROR, 0
+     89	000F  E8 0018				 CALL INPUTNUM
+     90	0012  80 3E 0047r 00			 CMP ISERROR, 0
+     91	0017  7F F1				 JG INPUT
+     92	0019  E8 0035				 CALL CASTNUM
+     93	001C  80 3E 0047r 00			 CMP ISERROR, 0
+     94	0021  7F E7				 JG INPUT
+     95	0023  E8 00E8				 CALL MULNUM
+     96	0026  E8 00A7				 CALL CASTRESULT
+     97	0029  CB				 RET
+     98	002A				 BEGIN ENDP
+     99
+    100	002A				 INPUTNUM PROC NEAR
+    101	002A  B4 09			     MOV AH, 09H
+    102	002C  BA 0017r			     LEA DX, PROMPT
+    103	002F  CD 21			     INT 21H
+    104
+    105					     NEWLINE ; MACRO
+    106
+    107	003D  B4 0A			     MOV AH, 0AH
+    108	003F  BA 0000r			     LEA DX, NUMPAR
+    109	0042  CD 21			     INT 021H
+    110
+    111					     NEWLINE ; MACRO
+    112	0050  C3			     RET
+    113	0051				 INPUTNUM ENDP
+    114
+Turbo Assembler	 Version 4.0	    30/11/21 22:42:40	    Page 3
+Lab2.asm
+
+
+
+    115	0051				 CASTNUM PROC NEAR
+    116	0051  C7 06 003Br 0000		     MOV NUM, 0
+    117	0057  C7 06 0041r 0001		     MOV POSITION, 01H
+    118	005D  B5 00			     MOV CH, 0
+    119	005F  8A 0E 0001r		     MOV CL, NUMLEN
+    120	0063  8B D9			     MOV BX, CX
+    121	0065  4B			     DEC BX
+    122	0066  BE 0002r			     LEA SI, NUMFLD
+    123	0069  8B 04			     MOV AX, [SI]
+    124	006B  3C 2D			     CMP AL, '-'
+    125	006D  75 01			     JNE PROCESS_DIGIT
+    126	006F  49			     DEC CX
+    127	0070				     PROCESS_DIGIT:
+    128	0070  B4 00				 MOV AH, 0
+    129	0072  8A 00				 MOV AL, [SI + BX]
+    130	0074  3C 30				 CMP AL, 030H
+    131	0076  7C 3F				 JL RETURNERR
+    132	0078  3C 39				 CMP AL, 039H
+    133	007A  7F 3B				 JG RETURNERR
+    134	007C  2C 30				 SUB AL, 030H
+    135	007E  F7 2E 0041r			 IMUL POSITION
+    136	0082  70 33				 JO RETURNERR
+    137	0084  01 06 003Br			 ADD NUM, AX
+    138	0088  71 0E				 JNO NEXT
+    139	008A  81 3E 003Br 8000			 CMP NUM, MIN
+    140	0090  75 25				 JNE RETURNERR
+    141	0092  8B 04				 MOV AX, [SI]
+    142	0094  3C 2D				 CMP AL, '-'
+    143	0096  75 1F				 JNE RETURNERR
+    144	0098					 NEXT:
+    145	0098  4B				     DEC BX
+    146	0099  83 F9 01				     CMP CX, 1
+    147	009C  74 0E				     JE	PRERETURN
+    148	009E  A1 0041r				     MOV AX, POSITION
+    149	00A1  F7 2E 0043r			     IMUL NUMRADIX
+    150	00A5  70 10				     JO	RETURNERR
+    151	00A7  A3 0041r				     MOV POSITION, AX
+    152	00AA  E2 C4				     LOOP PROCESS_DIGIT
+    153	00AC				     PRERETURN:
+    154	00AC  8B 04				 MOV AX, [SI]
+    155	00AE  3C 2D				 CMP AL, '-'
+    156	00B0  75 04				 JNE RETURN
+    157	00B2  F7 1E 003Br			 NEG NUM
+    158	00B6				     RETURN:
+    159	00B6  C3				 RET
+    160	00B7				     RETURNERR:
+    161						 DOS21 ERRORMSG	; MACRO
+    162						 NEWLINE ; MACRO
+    163	00CA  C6 06 0047r 01			 MOV ISERROR, 01H
+    164	00CF  C3				 RET
+    165	00D0				 CASTNUM ENDP
+    166
+    167	00D0				 CASTRESULT PROC NEAR
+    168	00D0  83 3E 003Dr 00		     CMP NUMH, 0
+    169	00D5  7D 16			     JGE M1
+    170	00D7  B0 2D			     MOV AL, '-'
+    171	00D9  CD 29			     INT 29H
+Turbo Assembler	 Version 4.0	    30/11/21 22:42:40	    Page 4
+Lab2.asm
+
+
+
+    172	00DB  F7 16 003Dr		     NOT NUMH
+    173	00DF  F7 16 003Fr		     NOT NUML
+    174	00E3  83 06 003Fr 01		     ADD NUML, 01H
+    175	00E8  83 16 003Dr 00		     ADC NUMH, 0
+    176	00ED				     M1:
+    177	00ED  B9 0000				 MOV CX, 0
+    178	00F0  BB 000A				 MOV BX, 0AH
+    179	00F3  8B 16 003Dr			 MOV DX, NUMH
+    180	00F7  A1 003Fr				 MOV AX, NUML
+    181	00FA				     M2:
+    182	00FA  F7 FB				 IDIV BX
+    183	00FC  80 CA 30				 OR DL,	030H
+    184	00FF  52				 PUSH DX
+    185	0100  41				 INC CX
+    186	0101  BA 0000				 MOV DX, 0
+    187	0104  85 C0				 TEST AX, AX
+    188	0106  75 F2				 JNZ M2
+    189	0108				     M3:
+    190	0108  58				 POP AX
+    191	0109  CD 29				 INT 029H
+    192	010B  E2 FB				 LOOP M3
+    193	010D  C3			     RET
+    194	010E				 CASTRESULT ENDP
+    195
+    196	010E				 MULNUM	PROC NEAR
+    197	010E  A1 003Br			     MOV AX, NUM
+    198	0111  F7 2E 0045r		     IMUL MULTIPLIER
+    199	0115  89 16 003Dr		     MOV NUMH, DX
+    200	0119  A3 003Fr			     MOV NUML, AX
+    201	011C  C3			     RET
+    202	011D				 MULNUM	ENDP
+    203	011D			     CSEG ENDS
+    204				     END BEGIN
+Turbo Assembler	 Version 4.0	    30/11/21 22:42:40	    Page 5
+Symbol Table
+
+
+
+
+Symbol Name			  Type	 Value
+
+??DATE				  Text	 "30/11/21"
+??FILENAME			  Text	 "Lab2	  "
+??TIME				  Text	 "22:42:40"
+??VERSION			  Number 0400
+@CPU				  Text	 0101H
+@CURSEG				  Text	 CSEG
+@FILENAME			  Text	 LAB2
+@WORDSIZE			  Text	 2
+BEGIN				  Far	 CSEG:0000
+CASTNUM				  Near	 CSEG:0051
+CASTRESULT			  Near	 CSEG:00D0
+CR				  Number 000D
+ERRORMSG			  Byte	 DSEG:001F
+INPUT				  Near	 CSEG:000A
+INPUTNUM			  Near	 CSEG:002A
+ISERROR				  Byte	 DSEG:0047
+LF				  Number 000A
+M1				  Near	 CSEG:00ED
+M2				  Near	 CSEG:00FA
+M3				  Near	 CSEG:0108
+MAX				  Number 7FFF
+MAXLEN				  Byte	 DSEG:0000
+MIN				  Number -8000
+MULNUM				  Near	 CSEG:010E
+MULTIPLIER			  Word	 DSEG:0045
+NEXT				  Near	 CSEG:0098
+NUM				  Word	 DSEG:003B
+NUMFLD				  Byte	 DSEG:0002
+NUMH				  Word	 DSEG:003D
+NUML				  Word	 DSEG:003F
+NUMLEN				  Byte	 DSEG:0001
+NUMPAR				  Byte	 DSEG:0000
+NUMRADIX			  Word	 DSEG:0043
+POSITION			  Word	 DSEG:0041
+PRERETURN			  Near	 CSEG:00AC
+PROCESS_DIGIT			  Near	 CSEG:0070
+PROMPT				  Byte	 DSEG:0017
+RETURN				  Near	 CSEG:00B6
+RETURNERR			  Near	 CSEG:00B7
+
+Macro Name
+
+DOS21
+INIT
+NEWLINE
+PRINTNUM
+
+Groups & Segments		  Bit Size Align  Combine Class
+
+CSEG				  16  011D Para	  none	  CODE
+DSEG				  16  0048 Para	  none	  DATA
+STSEG				  16  0040 Para	  Stack	  STACK
+Turbo Assembler	 Version 4.0	    30/11/21 22:42:40	    Page 6
+Error Summary
+
+
+
+*Warning* Lab2.asm(3) Pass-dependent construction encountered
+
